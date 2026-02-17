@@ -1,24 +1,196 @@
 ---
-title: "energy"
+title: "Energy"
 author: "Joe Masterson"
 date: "2026-02-10"
 output: html_document
 ---
-#Renewable Energy Data Set
-```{r}
-library(reader)
-energy <- read.csv('../../Data/IRENA data.csv',skip=1)
+# Title: Global Development and Economic Indicators (2007)
+### Author: Joe Masterson 
+### Date: 2-16-2026
+
+
+### A List of Data Set's to Create Graph's and Table: 
+
+
+
+##### 1.Renewable Energy Dataset
+
+```{r include=FALSE}
+library(readr)
+energy <- read_csv("/Users/jam/repos/Data/IRENA data.csv", skip = 1)
 ```
 
+##### 2.Gapminder Dataset
 
-```{r}
+```{r include=FALSE}
 library(gapminder)
+library(dplyr)
 data(gapminder)
-gapminder %>% head
 ```
 
-```{r}
-library(dplyr)
-library(reader)
-url <- 
+##### 3.Carbon Emissions Dataset 
 
+```{r include=FALSE}
+library(dplyr)
+library(readr)
+url <- "https://nyc3.digitaloceanspaces.com/owid-public/data/co2/owid-co2-data.csv"
+carbon <- read_csv(url)
+```
+
+
+##### 4. Levelized cost of Energy Dataset
+
+```{r include=FALSE}
+library(readr)
+library(dplyr)
+
+url <- "https://raw.githubusercontent.com/ericmkeen/sewanee_esus/master/02_energy_sector/levelized-cost-of-energy.csv"
+econ <- read_csv(url)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE
+)
+
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(readr)
+```
+
+
+
+```{r,echo=FALSE}
+
+library(plotly)
+ggplotly(
+  gapminder %>%
+    filter(year >= 1900,
+           year <= 2010,
+           continent != "Oceania") %>%
+    group_by(year, continent) %>%
+    summarize(avg_gdp = mean(gdpPercap), .groups = "drop") %>%
+    ggplot(aes(x = year,
+               y = avg_gdp,
+               color = continent)) +
+    geom_line(size = 1.3) +
+    geom_point(size = 2.5) +
+    labs(
+      title = "GDP per Capita by Continent (1990–2010)",
+      x = "Year",
+      y = "GDP per Capita (Constant 2000 USD)",
+      color = "Continent"
+    ) +
+    theme_bw()
+)
+
+```
+
+####### Caption: GDP per capita (constant 2000 USD) by continent from 1952 to 2007. Europe consistently maintained the highest income levels, while Africa remained lowest. Asia and the Americas experienced steady growth, particularly after the 1980s.
+
+
+```{r,echo=FALSE}
+econ %>%
+  filter(year == 2007,
+         country != "World",
+         !is.na(cost)) %>%
+  group_by(country) %>%
+  summarize(avg_cost = mean(cost, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(avg_cost)) %>%
+  slice_head(n = 15) %>%
+  ggplot(aes(x = reorder(country, avg_cost),
+             y = avg_cost,
+             fill = country)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Average Energy Cost by Country (2007)",
+    x = "Country",
+    y = "Average Cost"
+  ) +
+  theme_bw()
+```
+
+####### Caption: Average energy cost by country in 2007. European countries such as Germany and Sweden exhibit the highest average costs, while Mexico and China show comparatively lower energy prices.
+
+
+
+
+```{r,echo=FALSE}
+gapminder %>%
+  filter(year == 2007,
+         continent != "Oceania") %>%
+  group_by(continent) %>%
+  summarize(avg_lifeExp = mean(lifeExp), .groups = "drop") %>%
+  ggplot(aes(x = reorder(continent, avg_lifeExp),
+             y = avg_lifeExp,
+             fill = continent)) +
+  geom_col() +
+  labs(
+    title = "Average Life Expectancy by Continent (2007)",
+    x = "Continent",
+    y = "Average Life Expectancy",
+    fill = "Continent"
+  ) +
+  theme_bw()
+```
+
+####### Caption: Regional comparison of average life expectancy in 2007. Clear disparities are visible across continents, with Europe leading and Africa trailing significantly behind.
+
+
+```{r,echo=FALSE}
+library(plotly)
+
+ggplotly(
+  carbon %>%
+    filter(year == 2007,
+           country != "World",
+           !is.na(co2_per_capita)) %>%
+    inner_join(
+      gapminder %>%
+        filter(year == 2007,
+               continent != "Oceania") %>%
+        select(country, continent, gdpPercap),
+      by = "country"
+    ) %>%
+    ggplot(aes(
+      x = gdpPercap,
+      y = co2_per_capita,
+      color = continent,)) +
+    geom_point(size = 3, alpha = 0.8) +
+    scale_x_log10() +
+    labs(
+      title = "CO₂ Emissions vs Economic Development (2007)",
+      x = "GDP per Capita (Constant 2000 USD, log scale)",
+      y = "CO₂ Emissions per Capita (tons)"
+    ) +
+    theme_bw(),
+  tooltip = "text"
+)
+
+```
+####### Caption: CO₂ emissions per capita versus GDP per capita (constant 2000 USD, log scale) in 2007. The figure shows a positive relationship between economic development and per-capita emissions, with higher-income countries generally exhibiting greater carbon output. 
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(knitr)
+library(scales)
+gapminder %>%
+  filter(year == 2007,
+         continent != "Oceania") %>%
+  group_by(continent) %>%
+  summarize(Total_Population = sum(pop)) %>%
+  arrange(desc(Total_Population)) %>%
+  mutate(Total_Population = comma(Total_Population)) %>%
+  kable(
+    col.names = c("Continent", "Total Population"),
+    align = c("l", "r")
+  )
+```
+
+
+####### Caption: CO₂ emissions per capita versus GDP per capita (constant 2000 USD, log scale) in 2007. The figure shows a positive relationship between economic development and per-capita emissions, with higher-income countries generally exhibiting greater carbon output.
